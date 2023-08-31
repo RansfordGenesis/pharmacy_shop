@@ -1,0 +1,13 @@
+from pharmacy.database.core import Base
+from sqlalchemy import String
+from sqlalchemy.orm import Mapped, mapped_column
+
+
+class Admin(Base):
+    __tablename__ = "admin"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    email: Mapped[str] = mapped_column(String, unique=True, nullable=False)
+    password: Mapped[str] = mapped_column(String, nullable=False)
+    
