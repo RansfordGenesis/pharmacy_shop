@@ -3,6 +3,7 @@ from fastapi import status, Depends
 from fastapi.exceptions import HTTPException
 from sqlalchemy.orm import Session
 from pharmacy.database.core import sessionmaker
+from pharmacy.database.models.cart_items import CartItem
 from pharmacy.database.models.users import User
 from pharmacy.database.models.inventories import Inventory
 from pharmacy.database.models.admins import Admin
@@ -36,6 +37,15 @@ def get_admin_or_404(db: Database, adnin_id: int) -> User:
         detail="Admin not found")
     return admin
 
+def get_cart_item_or_404(db: Database, cart_item_id: int) -> CartItem:
+    cart_item: CartItem | None = db.get(CartItem, cart_item_id)
+    
+    if cart_item is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, 
+        detail="Cart item not found")
+    return cart_item
+
 AnnotatedUser = Annotated[User, Depends(get_user_or_404)]
 AnnotatedInventory = Annotated[Inventory, Depends(get_inventory_or_404)]
 AnnotatedAdmin = Annotated[Admin, Depends(get_admin_or_404)]
+AnnotatedCartItem = Annotated[CartItem, Depends(get_cart_item_or_404)]
