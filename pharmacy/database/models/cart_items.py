@@ -9,6 +9,6 @@ class CartItem(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     inventory_id: Mapped[int] = mapped_column(ForeignKey("inventory.id"), 
         nullable=False)
-    quantity: Mapped[int] = mapped_column(int, nullable=False)
+    quantity: Mapped[int] = mapped_column(nullable=False)
     user_id: Mapped[int] = mapped_column(ForeignKey("user.id", nullable=False))
     
