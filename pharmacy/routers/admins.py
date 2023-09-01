@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import select
 from fastapi.exceptions import HTTPException 
 
-from pharmacy.dependencies.auth import AuthenticatedAdmin
+from pharmacy.dependencies.auth import AuthenticatedAdmin, get_authenticator_admin
 from pharmacy.security import get_hash, password_matches_hashed
 from pharmacy.database.models.admins import Admin
 from pharmacy.dependencies.jwt import create_token
@@ -30,7 +30,8 @@ def create_admins(admin_data: AdminCreate, db: Database) -> Admin:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="admin already exists")
 
-@router.get("/", response_model=list[AdminSchema])
+@router.get("/", response_model=list[AdminSchema],
+        dependencies=[Depends(get_authenticator_admin)])
 def get_list_of_admins(db: Database):
     return db.scalars(select(Admin)).all()
 
@@ -59,11 +60,13 @@ def login_for_access_token(
 def get_current_admin(admin: AuthenticatedAdmin) -> Admin:
     return admin
 
-@router.get("/{admin_id}", response_model=AdminSchema)
+@router.get("/{admin_id}", response_model=AdminSchema, 
+            dependencies=[Depends(get_authenticator_admin)])
 def get_admin(admin: AnnotatedAdmin):
     return admin
 
-@router.delete("/{admin_id}")
+@router.delete("/{admin_id}", dependencies=[Depends(get_authenticator_admin)])
+    
 def delete_admin(admin: AnnotatedAdmin, db: Database):
     db.delete(admin)
     db.commit()

@@ -7,7 +7,7 @@ from pharmacy.database.core import sessionmaker
 import sqlalchemy.exc
 from sqlalchemy import select
 
-from pharmacy.dependencies.auth import AuthenticatedUser
+from pharmacy.dependencies.auth import AuthenticatedUser, get_authenticator_admin
 from pharmacy.dependencies.database import Database, AnnotatedUser
 from pharmacy.dependencies.jwt import create_token
 from pharmacy.security import get_hash, password_matches_hashed
@@ -73,12 +73,15 @@ def get_current_user(user: AuthenticatedUser) -> User:
 
 
 
-@router.get("/{user_id}", response_model=UserSchema)
+@router.get("/{user_id}", response_model=UserSchema,
+    dependencies=[Depends(get_authenticator_admin)])
+
 def get_user(user: AnnotatedUser) -> User:
     return user
     
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}",
+    dependencies=[Depends(get_authenticator_admin)])
 def delete_user(user: AnnotatedUser, db: Database) -> None:
     with sessionmaker() as db:
         db.delete(user)
