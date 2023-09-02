@@ -7,6 +7,6 @@ class CartItemBase(BaseModel):
 class CartItemCreate(CartItemBase):
     pass
     
-class CartItemUpdate(BaseModel):
+class CartItemSchema(BaseModel):
     id: int
     user_id: int

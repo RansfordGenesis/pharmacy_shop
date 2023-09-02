@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Depends, status
 from fastapi.exceptions import HTTPException
 from pharmacy.database.models.cart_items import CartItem
+from pharmacy.database.models.checkouts import Checkout
+from pharmacy.database.models.inventories import Inventory
 from pharmacy.schemas import cart_items
-from pharmacy.schemas.cart_items import CartItemCreate
+from pharmacy.schemas.cart_items import CartItemCreate, CartItemSchema
 from pharmacy.schemas.tokens import Token
 from pharmacy.schemas.users import UserCreate, UserSchema
 from pharmacy.database.models.users import User
@@ -13,6 +15,8 @@ from sqlalchemy import select
 from pharmacy.dependencies.auth import AuthenticatedUser, get_authenticator_admin
 from pharmacy.dependencies.database import (
     AnnotatedCartItem, Database, AnnotatedUser, get_inventory_or_404)
+from pharmacy.database.models.orders import Order
+from pharmacy.enums import OrderStatus
 
 from pharmacy.dependencies.jwt import create_token
 from pharmacy.security import get_hash, password_matches_hashed
@@ -90,7 +94,30 @@ def get_current_user(user: AuthenticatedUser,
 
 
 
-@router.get("/current/cart-items", response_model=list[CartItem])
+
+@router.post("/current/orders")
+def place_order(user: AuthenticatedUser, db: Database) -> None:
+    cart_items = db.scalar(select(CartItem).where(CartItem.user_id == user.id)).all()
+    if not cart_items:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        detail="cannot place order with empty cart")
+        
+    order = Order(status=OrderStatus.PENDING.value)
+    db.add(order)
+    db.commit()
+    db.refresh(order)
+    
+    for cart_item in cart_items:
+        inventory: Inventory | None = db.get(Inventory, cart_item.inventory_id)
+        if inventory is None:
+            continue
+        
+        checkout = Checkout(
+            order_id=order.id, cart_item_id=cart_item.id,)
+
+
+
+@router.get("/current/cart-items", response_model=list[CartItemSchema])
 def get_list_of_cart_items(user: AuthenticatedUser, db: Database) -> list[CartItem]:
     return db.scalar(select(CartItem).where(CartItem.user_id == user.id)).all()
 
@@ -106,10 +133,18 @@ def delete_cart_item(user: AuthenticatedUser, db: Database,
 
 
 @router.post("/current/cart-items", response_model=UserSchema)
-def add_item_to_cart(user: AuthenticatedUser, item_id: int, db: Database) -> CartItem:
-    user.cart_items.append(item_id)
-    db.commit()
-    db.refresh(user)
+def add_item_to_cart(user: AuthenticatedUser, 
+    cart_item_data: CartItemCreate,  db: Database) -> CartItem:
+    
+    inventory = get_inventory_or_404(db=db, inventory_id=cart_item_data.inventory_id)
+    if cart_item_data.quantity > inventory.quantity:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
+        detail="Not enough items in stock")
+    
+    cart_item = CartItem(**cart_item_data.model_dump(), user_id=user.id)
+    
+    db.commit(cart_item)
+    db.refresh(cart_item)
     return user
 
 
