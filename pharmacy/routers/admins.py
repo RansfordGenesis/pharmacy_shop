@@ -12,7 +12,7 @@ from pharmacy.schemas.tokens import Token
 from pharmacy.dependencies.database import Database, AnnotatedAdmin
 from pharmacy.schemas.admins import AdminSchema, AdminCreate
 
-router = APIRouter(prefix="/admins", tags=["admins"])
+router = APIRouter(prefix="/admins", tags=["Admins"])
 
 @router.post("/", response_model=AdminSchema)
 def create_admins(admin_data: AdminCreate, db: Database) -> Admin:
@@ -23,21 +23,22 @@ def create_admins(admin_data: AdminCreate, db: Database) -> Admin:
         db.add(admin)
         db.commit()
         db.refresh(admin)
-
         return admin
     except sqlalchemy.exc.IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="admin already exists")
 
+
 @router.get("/", response_model=list[AdminSchema],
         dependencies=[Depends(get_authenticator_admin)])
-def get_list_of_admins(db: Database):
+def get_list_of_admins(db: Database) -> list[Admin]:
     return db.scalars(select(Admin)).all()
+
 
 @router.post("/authenticate", response_model=Token)
 def login_for_access_token(
-    db: Database, credentials: OAuth2PasswordRequestForm = Depends()):
+    db: Database, credentials: OAuth2PasswordRequestForm = Depends()) -> dict[str, str]:
     credentials_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, 
     detail="incorrect username or password",)
 
@@ -54,19 +55,21 @@ def login_for_access_token(
 
     token = create_token(data=data)
 
-    return {"token_type": "bearer", "token": token}
+    return {"access_token": token ,"token_type": "bearer"}
+
 
 @router.get("/current", response_model=AdminSchema)
 def get_current_admin(admin: AuthenticatedAdmin) -> Admin:
     return admin
 
+
 @router.get("/{admin_id}", response_model=AdminSchema, 
-            dependencies=[Depends(get_authenticator_admin)])
-def get_admin(admin: AnnotatedAdmin):
+    dependencies=[Depends(get_authenticator_admin)])
+def get_admin(admin: AnnotatedAdmin) -> Admin:
     return admin
 
+
 @router.delete("/{admin_id}", dependencies=[Depends(get_authenticator_admin)])
-    
-def delete_admin(admin: AnnotatedAdmin, db: Database):
+def delete_admin(admin: AnnotatedAdmin, db: Database) -> None:
     db.delete(admin)
     db.commit()
