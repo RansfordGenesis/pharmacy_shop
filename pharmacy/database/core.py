@@ -8,7 +8,7 @@ engine = create_engine(
     connect_args={"check_same_thread": False}
     )
 
-sessionmaker = sessionmaker(
+SessionMaker = sessionmaker(
     bind=engine,
     autoflush=False,
     expire_on_commit=False,
