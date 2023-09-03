@@ -1,7 +1,7 @@
-from pharmacy.database.core import Base
 from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column
 
+from pharmacy.database.core import Base
 
 class Inventory(Base):
     __tablename__ = "inventories"
