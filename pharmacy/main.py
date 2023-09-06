@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from pharmacy.database.core import Base, engine
 from pharmacy.routers import users, inventories, admins
@@ -15,6 +16,17 @@ app = FastAPI(lifespan=lifespan)
 app.include_router(inventories.router)
 app.include_router(users.router)
 app.include_router(admins.router)
+
+origins = [
+    "http://localhost:5500"
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"])
 
 
 @app.get("/ping")
